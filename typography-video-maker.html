@@ -1,0 +1,786 @@
+<title>Typography Video Maker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind:wght@400;600&family=Baloo+2:wght@700;800&family=IBM+Plex+Mono:wght@500&family=Mukta:wght@700&family=Kalam:wght@700&family=Yatra+One&family=Rozha+One&family=Khand:wght@700&family=Teko:wght@600&family=Poppins:wght@600;800&family=Tiro+Devanagari+Hindi&family=Anton&family=Courier+Prime:wght@700&family=Roboto:wght@500&family=Caveat:wght@700&display=swap">
+<style>
+/* Layout: one phone-width column. The preview canvas sits on top and is the exact picture that gets recorded; below it five numbered steps (video, text, look, music, export). */
+:root {
+  --bg: #EEF1F6;
+  --surface: #FFFFFF;
+  --surface2: #E3E8F1;
+  --fg: #12161F;
+  --muted: #586074;
+  --line: #CBD3E0;
+  --accent: #2446E6;
+  --accent-fg: #FFFFFF;
+  --rec: #D8332A;
+  --ok: #12805C;
+  --stage: #151A26;
+  --display: "Baloo 2", "Hind", system-ui, sans-serif;
+  --body: "Hind", "Noto Sans Devanagari", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1219; --surface: #171C26; --surface2: #212837; --fg: #E9EDF5; --muted: #98A2B8;
+    --line: #2B3446; --accent: #8AA0FF; --accent-fg: #0E1219; --rec: #FF6B60; --ok: #4FD1A1; --stage: #0A0D14;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1219; --surface: #171C26; --surface2: #212837; --fg: #E9EDF5; --muted: #98A2B8;
+  --line: #2B3446; --accent: #8AA0FF; --accent-fg: #0E1219; --rec: #FF6B60; --ok: #4FD1A1; --stage: #0A0D14;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0; line-height: 1.2; }
+h3 { font-size: 14px; font-weight: 600; margin: 4px 0 0; color: var(--muted); letter-spacing: .02em; }
+p { margin: 0; }
+.sub { color: var(--muted); font-size: 15px; }
+.small { color: var(--muted); font-size: 13.5px; line-height: 1.45; }
+header { display: flex; flex-direction: column; gap: 6px; }
+
+.stage { background: var(--stage); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.screen { display: flex; justify-content: center; }
+#cv { display: block; width: auto; height: auto; max-width: 100%; max-height: 62vh; border-radius: 4px; background: #000; }
+.transport { display: flex; align-items: center; gap: 10px; }
+.transport input[type=range] { flex: 1; min-width: 0; }
+.tc { font-family: var(--mono); font-size: 12.5px; color: #C9D1E3; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+section { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; scroll-margin-top: 12px; }
+.head { display: flex; align-items: center; gap: 10px; }
+.step { font-family: var(--mono); font-size: 12px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+
+button, .btn { font: inherit; font-weight: 600; font-size: 15px; min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface2); color: var(--fg); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+button.primary, .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button.rec { background: var(--rec); border-color: var(--rec); color: #fff; }
+button.ghost { background: transparent; }
+button.sm { min-height: 36px; padding: 4px 12px; font-size: 14px; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .btn:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.stage button { background: #262E41; border-color: #333D55; color: #fff; min-height: 38px; padding: 4px 14px; }
+.stage button.rec { background: var(--rec); border-color: var(--rec); }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+input[type=range] { accent-color: var(--accent); }
+input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+
+textarea, input[type=number] { font: inherit; font-size: 16px; width: 100%; background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+textarea { resize: vertical; min-height: 96px; line-height: 1.5; }
+
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg button { flex: 1; min-width: 92px; }
+.seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.chk { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.sliders { display: grid; gap: 8px; }
+.sliders label { display: flex; align-items: center; gap: 10px; font-size: 14.5px; }
+.sliders input { flex: 1; min-width: 0; }
+
+.sync { background: var(--bg); border: 1px dashed var(--line); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.next { font-size: 15px; min-height: 2.9em; }
+.next b { font-family: var(--mono); font-weight: 500; font-size: 12px; color: var(--muted); display: block; }
+button.tap { min-height: 64px; font-size: 18px; font-family: var(--display); font-weight: 800; }
+
+.rows { display: flex; flex-direction: column; gap: 10px; }
+.row { border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.row.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.row .top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.row .top .n { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-right: auto; }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.times label { font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.times input { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+details { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; }
+summary { cursor: pointer; font-weight: 600; font-size: 15px; min-height: 28px; }
+details[open] summary { margin-bottom: 10px; }
+details .btnrow { margin-top: 10px; }
+
+.fonts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fnt { padding: 0; min-height: 0; background: transparent; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; align-items: stretch; gap: 0; text-align: left; }
+.fnt[aria-pressed="true"] { border-color: var(--accent); }
+.fnt .pv { background: #2A3040; color: #fff; min-height: 62px; display: flex; align-items: center; justify-content: center; font-size: 26px; line-height: 1.2; padding: 8px 4px; }
+.fnt .nm { font-size: 13px; padding: 5px 9px; background: var(--surface2); color: var(--fg); font-weight: 600; }
+.themes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.thm { padding: 0; min-height: 62px; border: 3px solid var(--line); border-radius: 10px; overflow: hidden; font-family: var(--display); font-weight: 800; font-size: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
+.thm small { font-family: var(--body); font-weight: 600; font-size: 11.5px; }
+.thm[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+
+.prog { height: 10px; border-radius: 6px; background: var(--surface2); overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--rec); }
+.result { display: flex; flex-direction: column; gap: 10px; }
+.result video { width: 100%; max-height: 60vh; background: #000; border-radius: 6px; }
+.note { font-size: 14px; padding: 10px 12px; border-radius: 8px; background: var(--surface2); }
+.ok { color: var(--ok); font-weight: 600; }
+.tcm { font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: 14.5px; max-width: min(92vw, 520px); z-index: 20; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Typography Video Maker</h1>
+    <p class="sub">शब्दों से चलते हुए टेक्स्ट वाला वीडियो बनाइए, या अपना वीडियो जोड़कर उस पर सीधे टेक्स्ट लगाइए। हिंदी और इंग्लिश दोनों चलते हैं। सब कुछ आपके ब्राउज़र में होता है, कुछ भी अपलोड नहीं होता।</p>
+  </header>
+
+  <div class="stage">
+    <div class="screen"><canvas id="cv" width="720" height="1280" aria-label="वीडियो प्रीव्यू"></canvas></div>
+    <div class="transport">
+      <button id="play" type="button" aria-label="चलाएं या रोकें">▶ चलाएं</button>
+      <input id="scrub" type="range" min="0" max="1000" value="0" aria-label="वीडियो में आगे पीछे जाएं">
+      <span class="tc" id="tc">0:00.0 / 0:00.0</span>
+    </div>
+    <button id="goExport" type="button" class="rec">⬇ वीडियो एक्सपोर्ट करें</button>
+  </div>
+
+  <section>
+    <div class="head"><span class="step">1</span><h2>अपना वीडियो जोड़ें (चाहें तो)</h2></div>
+    <p class="small">वीडियो जोड़ने पर टेक्स्ट उसी पर लगेगा और वीडियो की आवाज़ भी साथ आएगी। न जोड़ें तो रंगीन बैकग्राउंड पर टेक्स्ट वीडियो बनेगा।</p>
+    <div class="btnrow">
+      <label class="btn primary" for="vfile">वीडियो इंपोर्ट करें</label>
+      <input id="vfile" type="file" accept="video/*">
+      <button id="vOff" type="button" class="ghost" hidden>वीडियो हटाएं</button>
+    </div>
+    <p class="small" id="vinfo">अभी कोई वीडियो नहीं जोड़ा है।</p>
+    <div id="vOpts" hidden style="display:flex;flex-direction:column;gap:10px">
+      <label class="chk"><input type="checkbox" id="keepAudio" checked> वीडियो की अपनी आवाज़ रखें</label>
+      <div class="sliders">
+        <label>वीडियो पर अंधेरी परत <input id="dim" type="range" min="0" max="70" value="20" aria-label="वीडियो पर अंधेरी परत"> <span class="tcm" id="dimV">20%</span></label>
+      </div>
+      <p class="small">परत से सफ़ेद टेक्स्ट साफ़ पढ़ा जाता है।</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="head"><span class="step">2</span><h2>टेक्स्ट लिखें</h2></div>
+    <p class="small">हर टेक्स्ट एक "सीन" है, जिसका शुरू होने का समय और दिखने की अवधि होती है। किसी शब्द को रंगीन करने के लिए उसे तारे में लिखें, जैसे *शब्द*। नीचे के चार सीन उदाहरण हैं, इन्हें अपने टेक्स्ट से बदल दें।</p>
+    <div class="rows" id="rows"></div>
+    <div class="btnrow"><button id="add" type="button" class="ghost">+ यहाँ नया टेक्स्ट जोड़ें</button></div>
+    <p class="small" id="addHint"></p>
+    <div class="sync" id="syncBox" hidden>
+      <h3 style="margin:0">टैप से समय लगाएं</h3>
+      <p class="small">वीडियो चलेगा। जैसे ही कोई टेक्स्ट आना चाहिए, बड़े बटन को दबाएं। हर टैप पर अगला टेक्स्ट शुरू होता है और पिछला ख़त्म। टैप की देरी के लिए समय 0.2 सेकंड पहले का लगता है।</p>
+      <div class="next" id="next"></div>
+      <button id="syncStart" type="button" class="primary">टैप से समय लगाना शुरू करें</button>
+      <button id="tap" type="button" class="tap primary" hidden>अगला टेक्स्ट शुरू</button>
+    </div>
+    <details>
+      <summary>सारे टेक्स्ट एक साथ पेस्ट करें</summary>
+      <textarea id="bulk" placeholder="हर लाइन एक सीन बनेगी&#10;*नमस्ते* दोस्तों&#10;Keep going"></textarea>
+      <div class="btnrow"><button id="bulkGo" type="button" class="primary">इनसे सीन बनाएं</button></div>
+      <p class="small" style="margin-top:8px">इससे ऊपर के सारे सीन बदल जाएंगे और वे एक के बाद एक लगेंगे। वीडियो हो तो बाद में टैप से समय लगा सकते हैं।</p>
+    </details>
+  </section>
+
+  <section>
+    <div class="head"><span class="step">3</span><h2>लुक</h2></div>
+    <h3>एनिमेशन</h3>
+    <div class="seg" id="anims" role="group" aria-label="एनिमेशन"></div>
+    <h3>फ़ॉन्ट</h3>
+    <div class="fonts" id="fonts"></div>
+    <h3>टेक्स्ट का रंग (वीडियो न हो तो बैकग्राउंड भी)</h3>
+    <div class="themes" id="themes"></div>
+    <label class="chk"><input type="checkbox" id="cycle"> हर सीन में रंग बदलें</label>
+    <div class="sliders">
+      <label>टेक्स्ट साइज़ <input id="size" type="range" min="50" max="150" value="100" aria-label="टेक्स्ट साइज़"> <span class="tcm" id="sizeV">100%</span></label>
+    </div>
+    <h3>वीडियो का आकार</h3>
+    <div class="seg" id="fmts" role="group" aria-label="वीडियो का आकार">
+      <button type="button" data-fmt="9x16" aria-pressed="true">9:16 रील</button>
+      <button type="button" data-fmt="1x1" aria-pressed="false">1:1 चौकोर</button>
+      <button type="button" data-fmt="16x9" aria-pressed="false">16:9 चौड़ा</button>
+    </div>
+    <p class="small" id="fmtNote" hidden>अपना वीडियो जोड़ा है, इसलिए आकार वीडियो जैसा ही रहेगा।</p>
+  </section>
+
+  <section>
+    <div class="head"><span class="step">4</span><h2>म्यूज़िक (चाहें तो)</h2></div>
+    <div class="btnrow">
+      <label class="btn" for="music">गाना या म्यूज़िक चुनें</label>
+      <input id="music" type="file" accept="audio/*">
+      <button id="musicOff" type="button" class="ghost" hidden>म्यूज़िक हटाएं</button>
+    </div>
+    <p class="small" id="musicInfo">कोई म्यूज़िक नहीं चुना।</p>
+    <div class="sliders" id="volBox" hidden>
+      <label>आवाज़ <input id="vol" type="range" min="0" max="100" value="60" aria-label="म्यूज़िक की आवाज़"> <span class="tcm" id="volV">60%</span></label>
+    </div>
+  </section>
+
+  <section id="expSec">
+    <div class="head"><span class="step">5</span><h2>एक्सपोर्ट: वीडियो बनाएं और सेव करें</h2></div>
+    <p class="small">वीडियो उतने ही समय में बनता है जितनी उसकी लंबाई है। इस दौरान स्क्रीन चालू रखें और इसी टैब में रहें।</p>
+    <div class="btnrow">
+      <button id="export" type="button" class="rec">वीडियो बनाएं</button>
+      <button id="cancel" type="button" class="ghost" hidden>रद्द करें</button>
+    </div>
+    <div class="prog" id="progWrap" hidden><i id="prog"></i></div>
+    <div class="note" id="expMsg" hidden></div>
+    <div class="result" id="result" hidden>
+      <video id="outVideo" controls playsinline></video>
+      <div class="btnrow"><button id="saveVid" type="button" class="primary">वीडियो सेव करें</button></div>
+    </div>
+  </section>
+</div>
+<div id="toast" role="status" hidden></div>
+<video id="v" playsinline preload="auto" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></video>
+<audio id="aud" loop preload="auto"></audio>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ANIMS = [
+    { id: 'rise', name: 'ऊपर उठना' }, { id: 'pop', name: 'शब्द-शब्द पॉप' }, { id: 'type', name: 'टाइपिंग' },
+    { id: 'fade', name: 'फेड' }, { id: 'zoom', name: 'ज़ूम' }, { id: 'bounce', name: 'बाउंस' }, { id: 'slide', name: 'स्लाइड' }
+  ];
+  var FONTS = [
+    { id: 'baloo', name: 'मोटा गोल', font: 'Baloo 2', weight: 800, sample: 'नमस्ते' },
+    { id: 'hind', name: 'सादा साफ़', font: 'Hind', weight: 600, sample: 'नमस्ते' },
+    { id: 'mukta', name: 'न्यूज़ जैसा', font: 'Mukta', weight: 700, sample: 'नमस्ते' },
+    { id: 'yatra', name: 'शाही', font: 'Yatra One', weight: 400, sample: 'नमस्ते' },
+    { id: 'rozha', name: 'मोटा क्लासिक', font: 'Rozha One', weight: 400, sample: 'नमस्ते' },
+    { id: 'khand', name: 'पतला ऊँचा', font: 'Khand', weight: 700, sample: 'नमस्ते' },
+    { id: 'teko', name: 'तेज़ रफ़्तार', font: 'Teko', weight: 600, sample: 'नमस्ते' },
+    { id: 'kalam', name: 'हाथ की लिखावट', font: 'Kalam', weight: 700, sample: 'नमस्ते' },
+    { id: 'tiro', name: 'किताबी', font: 'Tiro Devanagari Hindi', weight: 400, sample: 'नमस्ते' },
+    { id: 'poppins', name: 'आधुनिक (Hindi + English)', font: 'Poppins', weight: 800, sample: 'नमस्ते' },
+    { id: 'anton', name: 'English: Impact', font: 'Anton', weight: 400, sample: 'Hello' },
+    { id: 'caveat', name: 'English: Handwritten', font: 'Caveat', weight: 700, sample: 'Hello' },
+    { id: 'courier', name: 'English: Typewriter', font: 'Courier Prime', weight: 700, sample: 'Hello' },
+    { id: 'roboto', name: 'English: Simple', font: 'Roboto', weight: 500, sample: 'Hello' }
+  ];
+  var THEMES = [
+    { id: 'raat', name: 'रात', bg1: '#0F1220', bg2: '#1B2140', fg: '#F4F1FF', acc: '#FFC53D' },
+    { id: 'sarson', name: 'सरसों', bg1: '#FFC928', bg2: '#FFB300', fg: '#1A1200', acc: '#C4161C' },
+    { id: 'laal', name: 'लाल', bg1: '#C4161C', bg2: '#8E0F14', fg: '#FFFFFF', acc: '#FFE04A' },
+    { id: 'hara', name: 'हरा', bg1: '#0E5A43', bg2: '#0A4333', fg: '#F2FFF8', acc: '#FFD54A' },
+    { id: 'safed', name: 'सफ़ेद', bg1: '#F7F7F4', bg2: '#ECECE7', fg: '#14161C', acc: '#D0261C' },
+    { id: 'neela', name: 'नीला', bg1: '#1534C8', bg2: '#0E2390', fg: '#FFFFFF', acc: '#7DF9FF' },
+    { id: 'gulabi', name: 'गुलाबी', bg1: '#FF5FA2', bg2: '#E23D86', fg: '#FFFFFF', acc: '#FFF36B' },
+    { id: 'kaala', name: 'काला', bg1: '#1A1A1A', bg2: '#000000', fg: '#EEEEEE', acc: '#FF4D4D' }
+  ];
+  var FORMATS = { '9x16': [720, 1280], '1x1': [720, 720], '16x9': [1280, 720] };
+
+  var S = {
+    scenes: [
+      { text: '*नमस्ते* दोस्तों', t0: 0, dur: 2.2 },
+      { text: 'हर बड़ी चीज़ की शुरुआत होती है *छोटे* क़दम से', t0: 2.2, dur: 3.8 },
+      { text: 'आज ही शुरू करें', t0: 6, dur: 2.4 },
+      { text: 'Keep going, *never* stop', t0: 8.4, dur: 2.6 }
+    ],
+    anim: 'rise', font: 'baloo', theme: 0, cycle: false, size: 100, fmt: '9x16', dim: 20, keepAudio: true,
+    t: 0.9, playing: false, last: 0, exporting: false, cancel: false, onEnd: null,
+    hasVideo: false, vdur: 0, fileName: 'video', sync: false, idx: 0,
+    outBlob: null, outExt: 'mp4', musicName: '', vol: 60
+  };
+  var cv = $('cv'), ctx = cv.getContext('2d'), v = $('v'), aud = $('aud');
+  var W = 720, H = 1280, raf = 0, fontVer = 0, toastT = 0, dl = null, wake = null;
+  var actx = null, vidG = null, volG = null, monG = null, adest = null, musicUrl = '', vidUrl = '', curFile = null, triedData = false;
+
+  function clamp(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function eOut(p) { p = clamp(p); return 1 - Math.pow(1 - p, 3); }
+  function eBack(p) { p = clamp(p); var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+  function eBounce(p) {
+    p = clamp(p); var n1 = 7.5625, d1 = 2.75;
+    if (p < 1 / d1) return n1 * p * p;
+    if (p < 2 / d1) { p -= 1.5 / d1; return n1 * p * p + 0.75; }
+    if (p < 2.5 / d1) { p -= 2.25 / d1; return n1 * p * p + 0.9375; }
+    p -= 2.625 / d1; return n1 * p * p + 0.984375;
+  }
+  function toast(msg) {
+    var t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3200);
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmt(t) {
+    if (!isFinite(t) || t < 0) t = 0;
+    var m = Math.floor(t / 60), s = t - m * 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  }
+  function r1(x) { return Math.round(x * 10) / 10; }
+  function total() {
+    if (S.hasVideo && S.vdur) return S.vdur;
+    var m = 0; S.scenes.forEach(function (s) { if (s.t0 != null) m = Math.max(m, s.t0 + s.dur); });
+    return m;
+  }
+  function lastEnd() { var m = 0; S.scenes.forEach(function (s) { if (s.t0 != null) m = Math.max(m, s.t0 + s.dur); }); return m; }
+  function curFont() { return FONTS.filter(function (f) { return f.id === S.font; })[0] || FONTS[0]; }
+  function stack(f) { return '"' + f.font + '", "Hind", "Noto Sans Devanagari", sans-serif'; }
+  function autoDur(text) {
+    var n = text.split(/\s+/).filter(Boolean).length;
+    return r1(Math.min(7, Math.max(1.8, 1.4 + n * 0.45)));
+  }
+  var seg = null;
+  function graphemes(s) {
+    try {
+      if (window.Intl && Intl.Segmenter) {
+        if (!seg) seg = new Intl.Segmenter('hi', { granularity: 'grapheme' });
+        return Array.from(seg.segment(s), function (x) { return x.segment; });
+      }
+    } catch (e) {}
+    return Array.from(s);
+  }
+
+  /* ---------- layout ---------- */
+  function parseText(txt) {
+    return txt.split('\n').map(function (line) {
+      var inA = false, words = [];
+      line.split(/\s+/).filter(Boolean).forEach(function (tok) {
+        if (tok.charAt(0) === '*') { inA = true; tok = tok.slice(1); }
+        var close = false;
+        if (tok.length && tok.charAt(tok.length - 1) === '*') { close = true; tok = tok.slice(0, -1); }
+        if (tok) words.push({ s: tok, acc: inA });
+        if (close) inA = false;
+      });
+      return words;
+    }).filter(function (l) { return l.length; });
+  }
+  function wrapAt(paras, fs, maxW, fd) {
+    ctx.font = fd.weight + ' ' + fs + 'px ' + stack(fd);
+    var sp = ctx.measureText(' ').width, lh = fs * 1.4, lines = [], maxw = 0;
+    paras.forEach(function (para) {
+      var cur = [], cw = 0;
+      para.forEach(function (src) {
+        var w = { s: src.s, acc: src.acc, w: ctx.measureText(src.s).width, g: null, c0: 0, x: 0 };
+        if (cur.length && cw + sp + w.w > maxW) { lines.push({ words: cur, lw: cw, y: 0 }); cur = []; cw = 0; }
+        cw += (cur.length ? sp : 0) + w.w; cur.push(w);
+      });
+      if (cur.length) lines.push({ words: cur, lw: cw, y: 0 });
+    });
+    lines.forEach(function (l) { if (l.lw > maxw) maxw = l.lw; });
+    return { lines: lines, h: lines.length * lh, maxw: maxw, sp: sp, lh: lh };
+  }
+  function layoutFor(sc) {
+    var key = [sc.text, S.font, S.size, W, H, fontVer].join('|');
+    if (sc._k === key) return sc._l;
+    var fd = curFont(), paras = parseText(sc.text);
+    var fs = Math.round(Math.min(W, H) * 0.24 * S.size / 100), maxW = W * 0.86, maxH = H * 0.74, res;
+    for (;;) {
+      res = wrapAt(paras, fs, maxW, fd);
+      if ((res.h <= maxH && res.maxw <= maxW) || fs <= 22) break;
+      fs = Math.floor(fs * 0.93);
+    }
+    var y0 = (H - res.h) / 2, c = 0, n = 0;
+    res.lines.forEach(function (l, i) {
+      l.y = y0 + res.lh * (i + 0.5);
+      var x = (W - l.lw) / 2;
+      l.words.forEach(function (w) {
+        w.x = x; x += w.w + res.sp; w.g = graphemes(w.s); w.c0 = c; c += w.g.length + 1; n++;
+      });
+    });
+    sc._k = key; sc._l = { fs: fs, lines: res.lines, n: n, chars: Math.max(1, c) };
+    return sc._l;
+  }
+
+  /* ---------- drawing ---------- */
+  function themeFor(i) { var k = S.cycle ? (S.theme + i) % THEMES.length : S.theme; return THEMES[k]; }
+  function sceneAt(t) {
+    var best = -1;
+    S.scenes.forEach(function (s, i) {
+      if (s.t0 != null && t >= s.t0 && t < s.t0 + s.dur && (best < 0 || s.t0 >= S.scenes[best].t0)) best = i;
+    });
+    if (best < 0) return null;
+    var s = S.scenes[best];
+    return { i: best, sc: s, tl: t - s.t0, dur: s.dur };
+  }
+  function drawScene(sc, th, tl, dur) {
+    var L = layoutFor(sc), fs = L.fs, n = L.n, an = S.anim, fd = curFont();
+    var outD = Math.min(0.28, dur * 0.2), outA = tl > dur - outD ? 1 - eOut((tl - (dur - outD)) / outD) : 1;
+    var gap = Math.min(0.28, (dur * 0.55) / Math.max(1, n));
+    var Tr = Math.min(dur * 0.65, L.chars * 0.05 + 0.2), shown = Math.floor(clamp(tl / Tr) * L.chars);
+    ctx.font = fd.weight + ' ' + fs + 'px ' + stack(fd); ctx.textBaseline = 'middle';
+    var wi = 0;
+    L.lines.forEach(function (line, li) {
+      line.words.forEach(function (w) {
+        var i = wi++, a = 1, dx = 0, dy = 0, s = 1, txt = null, p;
+        if (an === 'fade') { p = tl / 0.55; a = eOut(p); s = 0.94 + 0.06 * eOut(p); }
+        else if (an === 'zoom') { p = tl / 0.55; a = eOut(p * 1.4); s = 1 + 0.9 * (1 - eOut(p)); }
+        else if (an === 'rise') { p = (tl - i * gap * 0.6) / 0.45; a = eOut(p * 1.3); dy = (1 - eOut(p)) * fs * 0.7; }
+        else if (an === 'pop') { p = (tl - i * gap) / 0.4; if (p <= 0) a = 0; else { a = Math.min(1, p * 3); s = 0.3 + 0.7 * eBack(p); } }
+        else if (an === 'bounce') { p = (tl - i * gap * 0.7) / 0.7; if (p <= 0) a = 0; else { a = Math.min(1, p * 4); dy = -(1 - eBounce(p)) * fs * 1.6; } }
+        else if (an === 'slide') { p = (tl - li * 0.14) / 0.55; a = eOut(p * 1.5); dx = (li % 2 ? 1 : -1) * (1 - eOut(p)) * W * 0.7; }
+        else if (an === 'type') { var k = shown - w.c0; if (k <= 0) return; txt = w.g.slice(0, Math.min(k, w.g.length)).join(''); }
+        if (a <= 0.001) return;
+        ctx.save();
+        ctx.globalAlpha = clamp(a) * outA; ctx.fillStyle = w.acc ? th.acc : th.fg;
+        if (S.hasVideo) { ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = fs * 0.1; ctx.shadowOffsetY = fs * 0.03; }
+        if (txt !== null) { ctx.textAlign = 'left'; ctx.fillText(txt, w.x, line.y); }
+        else { ctx.textAlign = 'center'; ctx.translate(w.x + w.w / 2 + dx, line.y + dy); ctx.scale(s, s); ctx.fillText(w.s, 0, 0); }
+        ctx.restore();
+      });
+    });
+  }
+  function renderAt(t) {
+    var at = sceneAt(t), th = themeFor(at ? at.i : 0);
+    if (S.hasVideo && v.readyState >= 2) {
+      ctx.drawImage(v, 0, 0, W, H);
+      if (S.dim > 0) { ctx.fillStyle = 'rgba(0,0,0,' + (S.dim / 100) + ')'; ctx.fillRect(0, 0, W, H); }
+    } else {
+      var g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, th.bg1); g.addColorStop(1, th.bg2);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (at && at.sc.text.trim()) drawScene(at.sc, th, at.tl, at.dur);
+  }
+  function setFormat(f) {
+    S.fmt = f; W = FORMATS[f][0]; H = FORMATS[f][1]; cv.width = W; cv.height = H; renderAt(S.t);
+  }
+  function setSizeFromVideo() {
+    var vw = v.videoWidth || 1280, vh = v.videoHeight || 720, sc = Math.min(1, 1280 / Math.max(vw, vh));
+    W = Math.max(2, Math.round(vw * sc / 2) * 2); H = Math.max(2, Math.round(vh * sc / 2) * 2);
+    cv.width = W; cv.height = H;
+  }
+
+  /* ---------- fonts ---------- */
+  function ensureFonts() {
+    var fd = curFont(), txt = S.scenes.map(function (s) { return s.text; }).join(' ') + ' नमस्ते Hello';
+    return Promise.all([document.fonts.load(fd.weight + ' 40px "' + fd.font + '"', txt), document.fonts.load('600 40px "Hind"', txt)])
+      .then(function () {}, function () {}).then(function () { fontVer++; renderAt(S.t); });
+  }
+
+  /* ---------- audio graph ---------- */
+  function ensureGraph() {
+    if (actx) return true;
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      var vs = actx.createMediaElementSource(v), as = actx.createMediaElementSource(aud);
+      vidG = actx.createGain(); volG = actx.createGain(); var mix = actx.createGain();
+      monG = actx.createGain(); adest = actx.createMediaStreamDestination();
+      vs.connect(vidG); vidG.connect(mix); as.connect(volG); volG.connect(mix);
+      mix.connect(monG); monG.connect(actx.destination); mix.connect(adest);
+      volG.gain.value = S.vol / 100; vidG.gain.value = S.keepAudio ? 1 : 0;
+    } catch (e) { actx = null; }
+    return !!actx;
+  }
+  function resumeCtx() { if (actx && actx.state === 'suspended') { try { actx.resume(); } catch (e) {} } }
+
+  /* ---------- playback ---------- */
+  function startMedia(t) {
+    ensureGraph(); resumeCtx();
+    if (S.hasVideo) { try { v.currentTime = t; } catch (e) {} var pv = v.play(); if (pv && pv.catch) pv.catch(function () {}); }
+    if (S.musicName) {
+      try { aud.currentTime = (aud.duration && isFinite(aud.duration)) ? t % aud.duration : 0; } catch (e) {}
+      var pa = aud.play(); if (pa && pa.catch) pa.catch(function () {});
+    }
+  }
+  function stopMedia() { try { v.pause(); } catch (e) {} try { aud.pause(); } catch (e) {} }
+  function endPlayback() {
+    var tot = total();
+    S.playing = false; stopMedia();
+    S.t = S.hasVideo ? (v.currentTime || tot) : Math.max(0, tot - 0.001);
+    if (S.sync) finishSync();
+    if (S.onEnd) { var f = S.onEnd; S.onEnd = null; f(); }
+  }
+  function tick(ts) {
+    raf = 0;
+    if (S.playing) {
+      var tot = total();
+      if (S.hasVideo) {
+        S.t = v.currentTime;
+        if (v.ended || S.t >= tot - 0.04) endPlayback();
+      } else {
+        S.t += (ts - S.last) / 1000; S.last = ts;
+        if (S.t >= tot) endPlayback();
+      }
+    }
+    renderAt(S.t); updateUI();
+    if (S.playing) raf = requestAnimationFrame(tick);
+  }
+  function kick() { if (!raf) raf = requestAnimationFrame(tick); }
+  function play() {
+    var tot = total(); if (!tot || S.exporting) { if (!tot) toast('पहले कोई टेक्स्ट या वीडियो जोड़ें।'); return; }
+    if (S.t >= tot - 0.05) S.t = 0;
+    S.playing = true; S.last = performance.now(); startMedia(S.t); kick();
+  }
+  function pause() { S.playing = false; stopMedia(); updateUI(); }
+  function seek(t) {
+    S.t = Math.max(0, Math.min(t, Math.max(0, total() - 0.001)));
+    if (S.hasVideo) { try { v.currentTime = S.t; } catch (e) {} }
+    if (S.musicName && S.playing) startMedia(S.t);
+    renderAt(S.t); updateUI();
+  }
+  $('play').addEventListener('click', function () { if (S.playing) pause(); else play(); });
+  $('scrub').addEventListener('input', function () { if (!S.exporting) seek($('scrub').value / 1000 * total()); });
+  v.addEventListener('seeked', function () { if (!S.playing) { renderAt(S.t); updateUI(); } });
+  v.addEventListener('loadeddata', function () { renderAt(S.t); });
+  function updateUI() {
+    var tot = total();
+    $('tc').textContent = fmt(S.t) + ' / ' + fmt(tot);
+    if (tot) $('scrub').value = Math.round(S.t / tot * 1000);
+    $('play').textContent = S.playing ? '⏸ रोकें' : '▶ चलाएं';
+    var at = sceneAt(S.t), rows = $('rows').children;
+    for (var i = 0; i < rows.length; i++) rows[i].classList.toggle('on', !!at && at.i === i);
+    if (S.exporting && tot) $('prog').style.width = Math.min(100, S.t / tot * 100) + '%';
+    $('addHint').textContent = S.hasVideo ? 'नया टेक्स्ट वीडियो की अभी की जगह (' + fmt(S.t) + ') से शुरू होगा। पहले वीडियो को सही जगह रोककर बटन दबाएं।' : 'नया टेक्स्ट पिछले टेक्स्ट के बाद शुरू होगा।';
+  }
+
+  /* ---------- video import ---------- */
+  $('vfile').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    pause(); curFile = f; triedData = false; S.fileName = f.name.replace(/\.[^.]+$/, '') || 'video';
+    if (vidUrl) URL.revokeObjectURL(vidUrl);
+    vidUrl = URL.createObjectURL(f); v.src = vidUrl; v.load();
+    $('vinfo').textContent = 'खुल रहा है: ' + f.name; ensureGraph();
+  });
+  v.addEventListener('loadedmetadata', function () {
+    S.hasVideo = true; S.vdur = v.duration || 0; setSizeFromVideo();
+    $('vinfo').innerHTML = '<span class="ok">तैयार:</span> ' + esc(curFile ? curFile.name : 'वीडियो') + ' · ' + fmt(S.vdur) + ' · ' + (v.videoWidth || '?') + '×' + (v.videoHeight || '?');
+    $('vOff').hidden = false; $('vOpts').hidden = false; $('syncBox').hidden = false; $('fmtNote').hidden = false;
+    document.querySelectorAll('[data-fmt]').forEach(function (b) { b.disabled = true; });
+    var late = S.scenes.filter(function (s) { return s.t0 != null && s.t0 >= S.vdur; }).length;
+    S.t = Math.min(1.2, S.vdur / 2); try { v.currentTime = S.t; } catch (e) {}
+    renderRows(); updateSyncUI(); ensureFonts(); updateUI(); renderAt(S.t);
+    if (late) toast('कुछ टेक्स्ट वीडियो की लंबाई के बाद शुरू होते हैं, वे नहीं दिखेंगे।');
+  });
+  v.addEventListener('error', function () {
+    if (!S.hasVideo && curFile && !triedData) {
+      triedData = true; var fr = new FileReader();
+      fr.onload = function () { v.src = fr.result; v.load(); };
+      fr.readAsDataURL(curFile);
+    } else if (!S.hasVideo) { $('vinfo').textContent = 'वीडियो नहीं खुला। कृपया MP4 फ़ाइल चुनें।'; toast('यह वीडियो नहीं खुल सका।'); }
+  });
+  $('vOff').addEventListener('click', function () {
+    pause(); S.hasVideo = false; S.vdur = 0; S.sync = false; v.removeAttribute('src'); v.load(); curFile = null;
+    $('vinfo').textContent = 'अभी कोई वीडियो नहीं जोड़ा है।';
+    $('vOff').hidden = true; $('vOpts').hidden = true; $('syncBox').hidden = true; $('fmtNote').hidden = true;
+    document.querySelectorAll('[data-fmt]').forEach(function (b) { b.disabled = false; });
+    setFormat(S.fmt); S.t = Math.min(S.t, Math.max(0, total() - 0.001)); renderRows(); updateUI(); renderAt(S.t);
+  });
+  $('keepAudio').addEventListener('change', function () { S.keepAudio = $('keepAudio').checked; if (vidG) vidG.gain.value = S.keepAudio ? 1 : 0; });
+  $('dim').addEventListener('input', function () { S.dim = +$('dim').value; $('dimV').textContent = S.dim + '%'; if (!S.playing) renderAt(S.t); });
+
+  /* ---------- scenes UI ---------- */
+  function touch() { updateUI(); if (!S.playing) renderAt(S.t); }
+  function numField(label, val, min, onset) {
+    var l = document.createElement('label'); l.textContent = label;
+    var i = document.createElement('input'); i.type = 'number'; i.step = '0.1'; i.min = String(min); i.inputMode = 'decimal';
+    i.value = val == null ? '' : val.toFixed(1);
+    i.addEventListener('input', function () { var x = parseFloat(i.value); if (!isNaN(x) && x >= min) { onset(Math.min(3600, x)); touch(); } });
+    l.appendChild(i); return l;
+  }
+  function renderRows() {
+    var box = $('rows'); box.textContent = '';
+    if (!S.scenes.length) {
+      var e = document.createElement('p'); e.className = 'small'; e.textContent = 'अभी कोई टेक्स्ट नहीं है। नीचे "नया टेक्स्ट जोड़ें" दबाएं।'; box.appendChild(e); return;
+    }
+    S.scenes.forEach(function (sc, i) {
+      var row = document.createElement('div'); row.className = 'row';
+      var top = document.createElement('div'); top.className = 'top';
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = 'टेक्स्ट ' + (i + 1);
+      function mk(label, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'sm ghost'; b.textContent = label; b.addEventListener('click', fn); return b; }
+      top.appendChild(n);
+      top.appendChild(mk('▶ देखें', function () { if (sc.t0 != null) seek(sc.t0 + Math.min(0.9, sc.dur * 0.6)); }));
+      top.appendChild(mk('हटाएं', function () { S.scenes.splice(i, 1); renderRows(); seek(Math.min(S.t, total())); }));
+      var ta = document.createElement('textarea'); ta.rows = 2; ta.style.minHeight = '64px'; ta.value = sc.text;
+      ta.addEventListener('input', function () { sc.text = ta.value; touch(); });
+      ta.addEventListener('change', function () { ensureFonts(); });
+      var times = document.createElement('div'); times.className = 'times';
+      times.appendChild(numField('शुरू होगा (सेकंड)', sc.t0, 0, function (x) { sc.t0 = x; }));
+      times.appendChild(numField('कितनी देर दिखेगा (सेकंड)', sc.dur, 0.5, function (x) { sc.dur = x; }));
+      row.appendChild(top); row.appendChild(ta); row.appendChild(times); box.appendChild(row);
+    });
+  }
+  $('add').addEventListener('click', function () {
+    var t0 = S.hasVideo ? r1(S.t) : r1(lastEnd());
+    S.scenes.push({ text: '', t0: t0, dur: 2.5 }); renderRows(); touch();
+    var ta = $('rows').querySelectorAll('textarea'); if (ta.length) ta[ta.length - 1].focus();
+  });
+  $('bulkGo').addEventListener('click', function () {
+    var ls = $('bulk').value.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    if (!ls.length) { toast('पहले ऊपर के बॉक्स में टेक्स्ट लिखें।'); return; }
+    var t = 0; S.scenes = ls.map(function (x) { var d = autoDur(x), s = { text: x, t0: r1(t), dur: d }; t += d; return s; });
+    renderRows(); ensureFonts(); seek(Math.min(0.9, S.scenes[0].dur * 0.5)); toast(ls.length + ' सीन बन गए।');
+  });
+
+  /* ---------- tap sync (needs a video) ---------- */
+  function updateSyncUI() {
+    var n = $('next'), tap = $('tap'), start = $('syncStart');
+    tap.hidden = !S.sync; start.textContent = S.sync ? 'फिर से शुरू करें' : 'टैप से समय लगाना शुरू करें';
+    if (!S.scenes.length) { n.innerHTML = '<b>अगला टेक्स्ट</b>पहले ऊपर टेक्स्ट जोड़ें।'; return; }
+    if (S.sync && S.idx < S.scenes.length) n.innerHTML = '<b>अगला टेक्स्ट ' + (S.idx + 1) + '/' + S.scenes.length + '</b>' + esc(S.scenes[S.idx].text);
+    else n.innerHTML = '<b>स्थिति</b>तैयार। ऊपर का बटन दबाकर शुरू करें।';
+  }
+  $('syncStart').addEventListener('click', function () {
+    if (!S.hasVideo) return;
+    if (!S.scenes.length) { toast('पहले टेक्स्ट जोड़ें।'); return; }
+    S.scenes.forEach(function (s) { s.t0 = null; });
+    S.sync = true; S.idx = 0; S.t = 0; renderRows(); updateSyncUI(); play();
+  });
+  $('tap').addEventListener('click', function () {
+    if (!S.sync) return;
+    var t = r1(Math.max(0, (v.currentTime || 0) - 0.2));
+    if (S.idx > 0) { var p = S.scenes[S.idx - 1]; p.dur = Math.max(0.5, r1(t - p.t0)); }
+    var s = S.scenes[S.idx]; s.t0 = t; s.dur = 2.5; S.idx++;
+    if (S.idx >= S.scenes.length) { finishSync(); } else { updateSyncUI(); renderRows(); }
+  });
+  function finishSync() {
+    if (!S.sync) return;
+    S.sync = false;
+    var last = null; S.scenes.forEach(function (s) { if (s.t0 != null && (!last || s.t0 > last.t0)) last = s; });
+    if (last) last.dur = Math.max(0.8, Math.min(3, r1(total() - last.t0)));
+    renderRows(); updateSyncUI(); toast('समय लग गया। नीचे हर टेक्स्ट का समय जाँच लें।');
+  }
+
+  /* ---------- look UI ---------- */
+  function renderAnims() {
+    var b = $('anims'); b.textContent = '';
+    ANIMS.forEach(function (a) {
+      var x = document.createElement('button'); x.type = 'button'; x.textContent = a.name;
+      x.setAttribute('aria-pressed', a.id === S.anim ? 'true' : 'false');
+      x.addEventListener('click', function () {
+        S.anim = a.id; renderAnims(); pause();
+        var at = sceneAt(S.t) || sceneAt(S.t + 0.1); var st = at ? S.scenes[at.i].t0 : 0;
+        S.t = st; if (S.hasVideo) { try { v.currentTime = st; } catch (e) {} }
+        play();
+      });
+      b.appendChild(x);
+    });
+  }
+  function renderFonts() {
+    var g = $('fonts'); g.textContent = '';
+    FONTS.forEach(function (f) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'fnt';
+      b.setAttribute('aria-pressed', f.id === S.font ? 'true' : 'false');
+      var pv = document.createElement('div'); pv.className = 'pv'; pv.textContent = f.sample;
+      pv.style.fontFamily = stack(f); pv.style.fontWeight = f.weight;
+      var nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = f.name;
+      b.appendChild(pv); b.appendChild(nm);
+      b.addEventListener('click', function () { S.font = f.id; renderFonts(); ensureFonts(); touch(); });
+      g.appendChild(b);
+    });
+  }
+  function renderThemes() {
+    var g = $('themes'); g.textContent = '';
+    THEMES.forEach(function (t, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'thm'; b.setAttribute('aria-label', t.name);
+      b.setAttribute('aria-pressed', i === S.theme ? 'true' : 'false');
+      b.style.background = 'linear-gradient(' + t.bg1 + ',' + t.bg2 + ')'; b.style.color = t.fg;
+      b.innerHTML = '<span>अ <span style="color:' + t.acc + '">A</span></span><small>' + t.name + '</small>';
+      b.addEventListener('click', function () { S.theme = i; renderThemes(); touch(); });
+      g.appendChild(b);
+    });
+  }
+  $('cycle').addEventListener('change', function () { S.cycle = $('cycle').checked; touch(); });
+  $('size').addEventListener('input', function () { S.size = +$('size').value; $('sizeV').textContent = S.size + '%'; touch(); });
+  document.querySelectorAll('[data-fmt]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (S.hasVideo) return;
+      document.querySelectorAll('[data-fmt]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      setFormat(b.getAttribute('data-fmt'));
+    });
+  });
+
+  /* ---------- music ---------- */
+  $('music').addEventListener('change', function (e) {
+    var f = e.target.files && e.target.files[0]; if (!f) return;
+    if (musicUrl) URL.revokeObjectURL(musicUrl);
+    musicUrl = URL.createObjectURL(f); aud.src = musicUrl; aud.load();
+    S.musicName = f.name; ensureGraph();
+    $('musicInfo').innerHTML = '<span class="ok">चुना गया:</span> ' + esc(f.name);
+    $('musicOff').hidden = false; $('volBox').hidden = false;
+  });
+  $('musicOff').addEventListener('click', function () {
+    try { aud.pause(); } catch (e) {} S.musicName = ''; aud.removeAttribute('src'); aud.load();
+    $('musicInfo').textContent = 'कोई म्यूज़िक नहीं चुना।';
+    $('musicOff').hidden = true; $('volBox').hidden = true;
+  });
+  $('vol').addEventListener('input', function () {
+    S.vol = +$('vol').value; $('volV').textContent = S.vol + '%'; if (volG && !S.exporting) volG.gain.value = S.vol / 100;
+  });
+
+  /* ---------- export ---------- */
+  function pickMime() {
+    var c = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    for (var i = 0; i < c.length; i++) { try { if (MediaRecorder.isTypeSupported(c[i])) return c[i]; } catch (e) {} }
+    return '';
+  }
+  function seekV(t) {
+    return new Promise(function (res) {
+      if (!S.hasVideo || Math.abs(v.currentTime - t) < 0.01) return res();
+      var f = function () { v.removeEventListener('seeked', f); res(); };
+      v.addEventListener('seeked', f); v.currentTime = t;
+    });
+  }
+  function expUI(on) {
+    $('export').disabled = on; $('goExport').disabled = on; $('cancel').hidden = !on; $('progWrap').hidden = !on;
+    $('play').disabled = on; $('scrub').disabled = on; if (on) $('prog').style.width = '0';
+  }
+  function expMsg(t) { var m = $('expMsg'); m.hidden = !t; m.textContent = t || ''; }
+  $('cancel').addEventListener('click', function () { S.cancel = true; });
+  $('goExport').addEventListener('click', function () {
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    $('expSec').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  });
+  $('export').addEventListener('click', function () {
+    if (S.exporting) return;
+    var tot = total();
+    if (!tot || !S.scenes.some(function (s) { return s.text.trim() && s.t0 != null; })) { toast('पहले कम से कम एक टेक्स्ट जोड़ें और उसका समय लगाएं।'); return; }
+    if (typeof MediaRecorder === 'undefined' || !cv.captureStream) { expMsg('यह ब्राउज़र वीडियो बनाने की सुविधा नहीं देता। कृपया Chrome में खोलें।'); return; }
+    S.exporting = true; S.cancel = false; S.outBlob = null; $('result').hidden = true; expMsg(''); expUI(true); pause();
+    var graph = ensureGraph(); resumeCtx();
+    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').then(function (l) { wake = l; }, function () {}); } catch (e) {}
+    var rec = null, chunks = [], mime = pickMime(), failed = false;
+    ensureFonts().then(function () { return seekV(0); }).then(function () {
+      S.t = 0; renderAt(0);
+      var tracks = cv.captureStream(30).getVideoTracks();
+      if (graph) {
+        adest.stream.getAudioTracks().forEach(function (t) { tracks.push(t); });
+        monG.gain.value = 0;
+        if (S.musicName) {
+          var now = actx.currentTime; volG.gain.cancelScheduledValues(now);
+          volG.gain.setValueAtTime(S.vol / 100, now + Math.max(0, tot - 0.8)); volG.gain.linearRampToValueAtTime(0, now + tot);
+        }
+      }
+      var opts = { videoBitsPerSecond: 5000000 }; if (mime) opts.mimeType = mime;
+      rec = new MediaRecorder(new MediaStream(tracks), opts);
+      rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+      var stopped = new Promise(function (res) { rec.onstop = res; });
+      rec.start(500);
+      return new Promise(function (res) {
+        var iv = setInterval(function () { if (S.cancel) { clearInterval(iv); S.playing = false; S.onEnd = null; res(); } }, 200);
+        S.onEnd = function () { clearInterval(iv); res(); };
+        S.t = 0; S.playing = true; S.last = performance.now(); startMedia(0); kick();
+      }).then(function () { return new Promise(function (r) { setTimeout(r, 500); }); })
+        .then(function () { try { rec.stop(); } catch (e) {} return stopped; });
+    }).catch(function () { failed = true; }).then(function () {
+      stopMedia(); S.playing = false;
+      if (graph) { monG.gain.value = 1; volG.gain.cancelScheduledValues(0); volG.gain.value = S.vol / 100; }
+      try { if (wake) { wake.release(); wake = null; } } catch (e) {}
+      S.exporting = false; expUI(false);
+      S.t = Math.min(0.9, Math.max(0, tot - 0.001)); if (S.hasVideo) { try { v.currentTime = S.t; } catch (e) {} }
+      renderAt(S.t); updateUI();
+      if (failed) { expMsg('वीडियो बनाते समय दिक्कत आई। Chrome में दोबारा कोशिश करें।'); return; }
+      if (S.cancel) { expMsg('रद्द कर दिया गया।'); return; }
+      var type = mime ? mime.split(';')[0] : 'video/webm';
+      S.outExt = type.indexOf('mp4') >= 0 ? 'mp4' : 'webm';
+      S.outBlob = new Blob(chunks, { type: type });
+      if (!S.outBlob.size) { expMsg('वीडियो खाली बना। कृपया दोबारा कोशिश करें।'); return; }
+      $('outVideo').src = URL.createObjectURL(S.outBlob);
+      $('result').hidden = false; expMsg('वीडियो तैयार है। नीचे देखें और "वीडियो सेव करें" दबाएं।');
+    });
+  });
+  $('saveVid').addEventListener('click', function () {
+    if (!S.outBlob) return;
+    var name = (S.hasVideo ? S.fileName + '-text' : 'typography-video') + '.' + S.outExt;
+    if (dl) {
+      dl.save({ filename: name, data: S.outBlob }).then(function () { toast('सेव हो गया।'); }, function (e) {
+        if (e && e.code === 'declined') return; toast('सेव नहीं हो सका। दोबारा कोशिश करें।');
+      });
+      return;
+    }
+    try {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(S.outBlob); a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); toast('डाउनलोड शुरू हुआ।');
+    } catch (e) { toast('सेव नहीं हो सका। ऊपर के वीडियो को देर तक दबाकर सेव करें।'); }
+  });
+
+  /* ---------- start ---------- */
+  renderRows(); renderAnims(); renderFonts(); renderThemes(); updateSyncUI(); updateUI(); renderAt(S.t);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ensureFonts);
+  ensureFonts();
+  try { if (window.claude && window.claude.use) window.claude.use('downloads').then(function (d) { dl = d; }, function () {}); } catch (e) {}
+})();
+</script>
